@@ -1,0 +1,697 @@
+(function (window, undefined) {
+
+
+    //user defined push method
+    try {
+        push.apply([], document.getElementsByTagName("*"));
+
+    } catch (e) {
+        push = {
+            apply: function (a, b) {
+                for(var i = 0; i < b.length; i++) {
+                    a[a.length++] = b[i];
+                }
+                return a.length;
+            },
+            call: function (a) {
+                var args = [].slice.call(arguments, 1);
+
+                this.apply(a, args);
+            }
+        };
+    }
+
+    //core
+    function Baiya(selector) {
+        return new Baiya.fn.init(selector);
+    }
+    //Baiya prototype
+    Baiya.fn = Baiya.prototype = {
+        constructor: Baiya,
+        type: "isBaiya",
+        // Baiya member mark
+        length: 0,
+        init: function (selector) {
+            // no selector
+            if(!selector) {
+                return this;
+            }
+            // selector type is string
+            // selector type is tagName
+            if(typeof selector === "string") {
+                if(selector.charAt(0) === "<" && selector.charAt(selector.length-1) === ">") {
+                    return push.apply(this, Baiya.parseHTML(selector));
+                }else {
+                    return push.apply(this, Baiya.select(selector))
+                }
+            }
+            // selector type is function
+            if(typeof selector === "function") {
+                var old = window.onload;
+
+                if(typeof old === "function") {
+                    window.onload = function () {
+                        old();
+                        selector();
+                    }
+                }else {
+                    window.onload = selector;
+                }
+            }
+            // selector type is Dom
+            if(selector.nodeType) {
+                this[this.length++] = selector;
+                return this;
+            }
+            // selector come from Baiya
+            if(selector.type === "isBaiya") {
+                push.apply(this, selector);
+
+                return this;
+            }
+
+            if(selector.length >= 0) {
+                push.apply(this, selector);
+            }else {
+                this[this.length++] = selector;
+            }
+            return this;
+
+
+        },
+        each: function (callback) {
+            return Baiya.each(this, callback);
+        },
+        map: function (callback) {
+            return Baiya.each(this, callback);
+        },
+        toArray: function () {
+            return [].slice.call(this, 0)
+        },
+        get: function (index) {
+            if(index === undefined) {
+                return this.toArray();
+            }else {
+                if(index >= 0) {
+                    return this[index];
+                }else {
+                    return this[this.length + index];
+                }
+            }
+        },
+        eq: function (index) {
+            var newObj = this.constructor(this.get(index));
+            newObj.prev = this;
+            return newObj;
+        },
+        first: function () {
+            return this.eq(0);
+        },
+        last: function () {
+            return this.eq(-1);
+        }
+
+    };
+
+    Baiya.fn.init.prototype = Baiya.fn;
+
+    //statement
+    var select;
+
+    //extend
+    function extend(obj) {
+        var k;
+        for(k in obj) {
+            this[k] = obj[k];
+        }
+    }
+
+    Baiya.extend = extend;
+    Baiya.fn.extend = extend;
+
+    //自定义indexOf方法
+    function indexOf(arr, value, index) {
+        index = index || 0;
+        if(arr.indexOf) {
+            return arr.indexOf(value, index);
+        }
+        for(var i = index; i < arr.length; i++) {
+            if(arr[i] === value) {
+                return i;
+            }
+        }
+        return -1;
+    }
+
+    //selector
+    select = (function () {
+
+        //声明
+        var select,
+            support = {},
+            push = Array.prototype.push;
+
+
+        //1. 浏览器能力检测
+        //2. 如果可以使用系统方法就使用系统的
+        //3. 否则就是自己来封装实现
+
+        //浏览器支持
+        //定义一个支持的集合（集合有很多支持的boolean）
+        //定义一个检测者（正则）
+
+        var rNative = /function.*\(.*\).*\{.*\[native code\].*\}/;
+
+        // 检测
+        // 检测系统是否支持querySelectorAll
+        support.qsa = rNative.test(document.querySelectorAll + "");
+
+        // 检测系统是否支持document.getElementsByClassName
+        support.getElementsByClassName1 = rNative.test(document.getElementsByClassName + "");
+
+        // 检测系统是否支持div.getElementsByClassName
+        // div.getElementsByClassName和document.getElementsByClassName不是来自同一个原型链
+        var div = document.createElement("div");
+        support.getElementsByClassName2 = rNative.test(div.getElementsByTagName + "");
+
+        //检测系统是否支持indexOf方法
+        support.indexOf = rNative.test(Array.prototype.indexOf);
+
+        //自定义indexOf方法
+        function indexOf(arr, value, index) {
+            index = index || 0;
+            if(support.indexOf) {
+                return arr.indexOf(value, index);
+            }
+            for(var i = index; i < arr.length; i++) {
+                if(arr[i] === value) {
+                    return i;
+                }
+            }
+            return -1;
+        }
+
+        //自定义push方法
+        try {
+            push.apply([], document.getElementsByTagName("*"));
+
+        } catch (e) {
+            push = {
+                apply: function (a, b) {
+                    for(var i = 0; i < b.length; i++) {
+                        a[a.length++] = b[i];
+                    }
+                    return a.length;
+                },
+                call: function (a) {
+                    var args = [].slice.call(arguments, 1);
+
+                    this.apply(a, args);
+                }
+            };
+        }
+
+        //数组去重
+        function unique(arr) {
+            var newArr = [];
+            for(var i = 0; i < arr.length; i++) {
+                if(indexOf(newArr, arr[i]) === -1) {
+                    newArr.push(arr[i])
+                }
+            }
+            return newArr;
+        }
+
+
+
+        //兼容旧环境 MDN
+        //trim方法兼容
+        if (!String.prototype.trim) {
+            String.prototype.trim = function () {
+                return this.replace(/^[\s\uFEFF\xA0]+|[\s\uFEFF\xA0]+$/g, '');
+            };
+        }
+
+        //封装获取类名dom对象的函数
+        function getByClass(classname, node) {
+            //声明
+            var arr= [],
+                lists = node.getElementsByTagName;
+
+            if(node == document && support.getElementsByClassName1 || node.nodeType == 1 && support.getElementsByClassName2) {
+                return node.getElementsByClassName(classname);
+            }else {
+                for(var i = 0; i < lists.length; i++) {
+                    if(indexOf(lists[i].getAttribute("class").split(" ")) != -1) {
+                        arr.push(lists[i]);
+                    }
+                }
+                return arr;
+            }
+        }
+
+        //querySelectorAll封装
+
+        select = function (selector, node, results) {
+
+            results = results || [];
+            node = node || document;
+
+            if(support.qsa) {
+                push.apply(results, node.querySelectorAll(selector));
+                return results;
+            }
+
+            return mySelect(selector, node, results);
+        };
+
+
+
+        //获取对象的封装
+        //封装获取标签
+        function t(tagName, node, results) {
+            results = results || [];
+            node = node || document;
+            push.apply(results, node.getElementsByTagName(tagName));
+            return results;
+        }
+        //封装获取类名
+        function c(className, node, results) {
+            results = results || [];
+            node = node || document;
+            push.apply(results, getByClass(className, node));
+            return results;
+        }
+        //封装获取id
+        function id(idName, node, results) {
+            results = results || [];
+            var dom = document.getElementById(idName);
+
+            if(dom) {
+                //怎样使用apply方法
+                // results[results.length++] = dom;
+                push.call(results, dom);
+            }
+            return results;
+        }
+
+        //封装含有,的选择符
+        function mySelect(selector, node, results) {
+            results = results || [];
+            node = node || document;
+
+            var lists = selector.split(",");
+
+            for(var i = 0; i < lists.length; i++) {
+                select1(lists[i].trim(), node, results)
+            }
+            return unique(results);
+        }
+
+        //封装后代选择器
+        function select2(selector, node, results) {
+            results = results || [];
+            node = node || document;
+
+            //将选择器字符串转化成数组
+            var lists = selector.replace(/\s+/g, " ").split(" ");
+
+            //用res1和res2变量的循环遍历
+            var res1 = [node],
+                res2 = [];
+
+            for(var i = 0; i < lists.length; i++) {
+                res2 = res1;
+
+                res1 = [];
+                for(var j = 0; j < res2.length; j++) {
+                    select1(lists[i], res2[j], res1)
+                }
+            }
+            return res1;
+        }
+
+        function select1(selector, node, results) {
+            var first = selector.charAt(0);
+            results = results || [];
+            node = node || document;
+
+            //处理selector含有空格的情况
+            if(selector.split(" ").length === 1) {
+                if(selector === "*") {
+                    return t(selector, node, results);
+                }else if(first === "#") {
+                    return id(selector.slice(1), node, results);
+                }else if(first === ".") {
+                    return c(selector.slice(1), node, results);
+                }else {
+                    return t(selector, node, results);
+                }
+            }else {
+                //处理后代选择器
+                if(/^[#\.\w\d\_\-]+(\s+[#\.\w\d\_\-]+)+$/.test( selector )) {
+                    var temp = select2(selector,node, results);
+
+                    push.apply(results, temp);
+                    return results;
+
+
+                }else {
+                    throw new Error("该选择器目前还不支持");
+                }
+            }
+
+
+        }
+
+        //闭包，将select的实现return出去
+        return select;
+
+    })();
+
+    Baiya.select = select;
+
+
+    //DOM
+
+    //tool--------------------------------------------------------
+    // str to DOM, but no contain table type
+    Baiya.parseHTML = (function () {
+        var arr = [],
+            node,
+            div = document.createElement("div");
+
+        return function (str) {
+            div.innerHTML = str;
+            node = div.childNodes;
+            arr.push.apply(arr, node);
+            return arr;
+        }
+    })();
+
+    //case
+    Baiya.fn.extend({
+        //caller{ArrayLike} append dom tree
+        appendTo: function (selector) {
+            var i,
+                j,
+                obj = this.constructor(selector),
+                newObj = this.constructor(),
+                temp,
+                arr = [];
+            for(i = 0; i < obj.length; i++) {
+                for(j = 0; j < this.length; j++) {
+                    temp = i === obj.length - 1 ? this[j] : this[j].cloneNode(true);
+                    obj[i].appendChild(temp);
+                    arr.push(temp);
+                }
+            }
+            newObj.prev = this;
+            console.log(this);
+            console.log(newObj);
+            push.apply(newObj, arr);
+            return newObj;
+
+        },
+        append: function (selector) {
+            var obj = this.constructor(selector);
+            console.log(this.constructor());
+            obj.appendTo(this);
+            return this;
+        },
+        prependTo: function (selector) {
+            var i,
+                j,
+                obj = this.constructor(selector),
+                newObj = this.constructor(),
+                temp,
+                arr = [];
+            for(i = 0; i < obj.length; i++) {
+                for(j = 0; j < this.length; j++) {
+                    temp = i === obj.length - 1 ? this[j] : this[j].cloneNode(true);
+                    obj[i].insertBefore(temp, obj[i].firstChild);
+                    arr.push(temp);
+                }
+            }
+            newObj.prev = this;
+            push.apply(newObj, arr);
+            return newObj;
+
+        },
+        prepend: function (selector) {
+            var obj = this.constructor(selector);
+            obj.prependTo(this);
+            return this;
+        },
+        end: function () {
+            return this.prev || this;
+        }
+    });
+
+    //static
+    Baiya.extend({
+        //ergodic ArrayLike or Obj
+        each: function (arr, callback) {
+            var i, k,flag;
+            if(typeof arr !== "object") {
+                return this;
+            }
+            if(arr.length >= 0 && typeof arr !== "function") {
+                for(i = 0; i < arr.length; i++) {
+                    flag = callback.call(arr[i], i, arr[i]);
+                    if(flag === false) {
+                        break;
+                    }
+                }
+            }else {
+                for(k in arr) {
+                    callback.call(arr[k] ,k, arr[k]);
+                }
+            }
+            return arr;
+        },
+        map: function (arr, callback) {
+            var newArr = [],
+                value,
+                i,
+                k,
+                flag;
+            if(arr.length >= 0 && typeof arr !== "function") {
+                for(i = 0; i < arr.length; i++) {
+                    value = callback(arr[i], i);
+                    if(value !== undefined) {
+                        newArr[newArr.length] = value;
+                    }
+                }
+            }else {
+                for(k in arr) {
+                    value = callback(arr[k], k);
+                    if(value !== undefined) {
+                        newArr[newArr.length] = value;
+                    }
+                }
+            }
+            return newArr;
+        }
+    });
+
+    //Event--------------------------------------------------------
+    // on compat IE
+
+    Baiya.fn.extend({
+        // on: function (type, callback) {
+        //     return this.each(function (i, v) {
+        //         this.addEventListener(type, callback);
+        //     })
+        // },
+        events: {},
+        on: function (type, callback) {
+            if(this.events[type] === undefined) {
+                this.events[type] = [];
+                var bObj = this;
+                this.each(function (i, v) {
+                    var DObj = this;
+                    this["on" + type] = function () {
+                        B.each(bObj.events[type],function (i, v) {
+                            this.call(DObj);
+                        })
+                    }
+                });
+            }
+            this.event[type].push(callback);
+        },
+        off: function (type, callback) {
+            return this.each(function (i, v) {
+                this.removeEventListener(type, callback);
+            })
+        }
+    });
+
+    Baiya.each(("onclick,onmousedown,onmouseenter,onmouseleave," +
+    "onmousemove,onmouseout,onmouseover,onmouseup,onfocus," +
+    "onmousewheel,onkeydown,onkeypress,onkeyup,onblur").split(","),     function (i, v) {
+        var event = v.slice(2);
+        Baiya.fn[event] = function (callback) {
+            return this.on(event, callback);
+        }
+    });
+
+
+    // css
+    Baiya.fn.extend({
+        css: function (name, value) {
+            if(value) {
+                this.each(function () {
+                    this.style[name] = value;
+                });
+            }else {
+                if(typeof name === "string") {
+                    return this.get(0).style[name] || window.getComputedStyle(this.get(0))[name] || this.get(0).currentStyle(name);
+                }else {
+                    this.each(function () {
+                        for(var k in name) {
+                            this.style[k] = name[k];
+                        }
+                    })
+                }
+            }
+            return this;
+        },
+        addClass: function (name) {
+            if(typeof name === "string") {
+                this.each(function () {
+                    if(this.className === "") {
+                        this.className = name;
+                    }else {
+                        this.className += " " + name;
+                    }
+                });
+            }
+            return this;
+        },
+        removeClass: function (name) {
+            if(typeof name === "string") {
+                this.each(function () {
+                    var arr = this.className.trim().split(" ");
+                    var index;
+                    if((index = indexOf(arr, name)) !== -1) {
+                        arr.splice(index, 1);
+                    }
+                    this.className = arr.join(" ");
+                });
+            }
+            return this;
+        },
+        toggleClass: function (name) {
+            if(typeof name === "string") {
+                this.each(function () {
+                    var arr = this.className.trim().split(" ");
+                    var index;
+                    if((index = indexOf(arr, name)) !== -1) {
+                        arr.splice(index, 1);
+                    }else {
+                        arr.push(name);
+                    }
+                    this.className = arr.join(" ");
+                });
+            }
+            return this;
+        }
+
+
+    });
+
+    // attributes
+    Baiya.fn.extend({
+        attr: function (name, value) {
+            if(value === undefined && typeof name === "string") {
+                return this.get(0).getAttribute(name);
+            }else if(typeof value === "string" && typeof name === "string") {
+                this.each(function () {
+                    this.setAttribute(name, value);
+                });
+            }else if(typeof name === "object" && value === undefined) {
+                this.each(function () {
+                    for(var k in name) {
+                        this.setAttribute(k, name[k]);
+                    }
+                });
+            }
+            return this;
+        },
+        removeAttr: function (name) {
+            if(typeof name === "string") {
+                this.each(function () {
+                    this.removeAttribute(name);
+                });
+            }
+            return this;
+        },
+        prop: function (name, value) {
+            if(value === undefined && typeof name === "string") {
+                return this.get(0).getAttribute(name);
+            }else if(typeof value === "function" && typeof name === "string"){
+                this.each(function (i, v) {
+                    this[name] = value.call(this, i, this);
+                })
+            }else if(typeof value === "boolean" && typeof name === "string") {
+                this.each(function () {
+                    this.setAttribute(name, value);
+                });
+            }else if(typeof name === "object" && typeof value === undefined) {
+                this.each(function () {
+                    for(var k in name) {
+                        this[k] = name[k];
+                    }
+                });
+            }
+            return this;
+        },
+        val: function (value) {
+            if(value) {
+                this.each(function () {
+                    this.value = value;
+                });
+            }else {
+                return this.get(0).value;
+            }
+            return this;
+        },
+        html: function (value) {
+            if(value) {
+                this.each(function () {
+                    this.innerHTML = value;
+                });
+            }else {
+                return this.get(0).innerHTML;
+            }
+            return this;
+        },
+        text: function (value) {
+            if(value) {
+                this.each(function () {
+                    if(this.innerHTML) {
+                        this.innerHTML = value;
+                    }else {
+                        this.textContent = value;
+                    }
+                });
+            }else {
+                this.each(function () {
+                    if(this.innerHTML) {
+                        return this.innerHTML;
+                    }else {
+                        return this.textContent;
+                    }
+                });
+            }
+        }
+
+
+    });
+
+
+
+    window.Baiya = window.B = Baiya;
+
+})(window);
